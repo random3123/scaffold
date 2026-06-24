@@ -3,7 +3,8 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 모바일 기기 완벽 대응을 위한 viewport-fit=cover 추가 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>강관 비계 조립 실습 3D 시뮬레이터</title>
     <!-- 안정적인 unpkg CDN으로 Three.js 및 OrbitControls 로드 -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
@@ -29,19 +30,24 @@
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
-        /* --- 모바일 & 브라우저 1화면 완벽 고정 --- */
+        /* --- 모바일 & 브라우저 1화면 완벽 고정 (핵심 수정) --- */
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* 전체 스크롤 원천 차단 */
+        }
+
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 0;
-            padding: 0;
-            width: 100vw;
-            height: 100vh; 
-            height: 100dvh; /* 모바일 브라우저 주소창까지 고려한 높이 */
-            overflow: hidden; /* 화면 밖으로 밀리는 스크롤 완벽 차단 */
+            /* 좌우폭 안 맞는 현상 해결을 위한 fixed 고정 */
+            position: fixed; 
+            top: 0; left: 0; right: 0; bottom: 0;
         }
 
         /* --- View Visibility --- */
@@ -65,7 +71,7 @@
             text-align: center;
             width: 90%; 
             max-width: 600px;
-            max-height: 95dvh;
+            max-height: 95vh;
             overflow-y: auto;
         }
         .home-icon { font-size: 4rem; margin-bottom: 20px; }
@@ -227,38 +233,40 @@
         .btn-modal-confirm { background: var(--primary); color: white; }
 
         /* =========================================
-           반응형 (Mobile) - 1화면 꽉 참 및 여백 최적화
+           반응형 (Mobile) - 1화면 꽉 참 및 여백 완벽 제거
            ========================================= */
         @media (max-width: 768px) {
             /* 홈 화면을 모바일 폰 1화면에 완벽하게 꽉 채우기 */
             .home-box {
                 width: 100%;
+                max-width: 100%;
                 height: 100%;
-                max-height: 100dvh;
+                max-height: 100%;
                 border-radius: 0;
                 box-shadow: none;
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
-                padding: 30px 20px;
+                padding: 20px 15px;
             }
-            .btn-start, .btn-ghost { max-width: 100%; }
+            .btn-start, .btn-ghost { max-width: 100%; width: 100%; }
 
-            /* 실습 화면 꽉 차게 설정 */
-            .simulator-container { max-height: 100dvh; height: 100dvh; border-radius: 0; box-shadow: none; border: none; }
+            /* 실습 화면 꽉 차게 설정 (좌우 여백 제거) */
+            .simulator-container { width: 100%; max-width: 100%; height: 100%; max-height: 100%; border-radius: 0; box-shadow: none; border: none; }
             
             header { padding: 10px 15px; }
             h1 { font-size: 1.1rem; margin-top: 30px; margin-bottom: 5px; } 
             .btn-go-home { top: 10px; left: 10px; padding: 6px 10px; font-size: 0.8rem; }
             .subtitle { display: none; } /* 공간 확보를 위해 모바일에서 부제목 숨김 */
             
-            .progress-wrapper { margin-bottom: 6px; }
+            .progress-wrapper { margin-bottom: 6px; width: 100%; max-width: 100%; }
             .progress-text { font-size: 0.85rem; margin-bottom: 4px; }
             
-            .message-box { font-size: 0.85rem; padding: 8px 12px; min-height: 44px; max-height: 75px; }
+            /* 긴 메시지가 버튼을 덮지 않도록 제한 */
+            .message-box { font-size: 0.85rem; padding: 8px 12px; min-height: 44px; max-height: 75px; width: 100%; }
 
-            main { flex-direction: column; }
+            main { flex-direction: column; flex: 1 1 0; min-height: 0; width: 100%; }
             
             /* 가로 스와이프 형식 인벤토리 */
             .inventory { 
@@ -279,7 +287,9 @@
             
             .part-btn { flex: 0 0 90px; padding: 6px 4px; font-size: 0.75rem; height: 55px; }
 
-            footer { padding: 10px 15px; flex-direction: row; gap: 10px; }
+            .workspace-wrapper { width: 100%; flex: 1 1 0; min-height: 0; }
+
+            footer { padding: 10px 15px; flex-direction: row; gap: 10px; width: 100%; }
             .control-btn { padding: 10px 15px; font-size: 0.9rem; flex: 1; }
             .btn-hint { max-width: none; }
         }
@@ -477,7 +487,7 @@
 </div>
 
 <!-- ==========================================
-     화면 1: 첫 화면 (홈 뷰) - 모바일 화면 꽉참 고정
+     화면 1: 첫 화면 (홈 뷰)
      ========================================== -->
 <div id="home-view" class="view-container active">
     <div class="home-box">
@@ -508,7 +518,6 @@
                 </div>
             </div>
 
-            <!-- 설명글이 너무 길어도 버튼을 밀어내지 않게 제한 스크롤 적용 -->
             <div id="message-box" class="message-box">아래 인벤토리에서 깜빡이는 힌트 버튼을 눌러 실습을 시작해보세요! 👇</div>
         </header>
 
