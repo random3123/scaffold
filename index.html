@@ -3,10 +3,8 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <!-- 모바일 기기 완벽 대응을 위한 viewport-fit=cover 추가 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>강관 비계 조립 실습 3D 시뮬레이터</title>
-    <!-- 안정적인 unpkg CDN으로 Three.js 및 OrbitControls 로드 -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
@@ -30,13 +28,12 @@
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
-        /* --- 모바일 & 브라우저 1화면 완벽 고정 (핵심 수정) --- */
         html, body {
             width: 100%;
             height: 100%;
             margin: 0;
             padding: 0;
-            overflow: hidden; /* 전체 스크롤 원천 차단 */
+            overflow: hidden; 
         }
 
         body {
@@ -45,7 +42,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* 좌우폭 안 맞는 현상 해결을 위한 fixed 고정 */
             position: fixed; 
             top: 0; left: 0; right: 0; bottom: 0;
         }
@@ -62,7 +58,14 @@
             display: flex;
         }
 
-        /* --- Home View (PC 기본 스타일) --- */
+        /* 홈 뷰 배경을 아예 흰색으로 덮어서 여백 차단 */
+        #home-view {
+            background-color: var(--panel-bg);
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- Home View --- */
         .home-box {
             background: var(--panel-bg);
             padding: 50px 30px;
@@ -109,12 +112,12 @@
         }
         .btn-ghost:hover { background-color: rgba(37, 99, 235, 0.05); transform: translateY(-2px); }
 
-        /* --- Simulator Layout (Flexbox 최적화) --- */
+        /* --- Simulator Layout --- */
         .simulator-container {
             width: 100%;
             height: 100%;
             max-width: 1100px;
-            max-height: 95vh; /* PC 화면용 */
+            max-height: 95vh; 
             background: var(--panel-bg);
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
@@ -123,7 +126,6 @@
             flex-direction: column;
         }
 
-        /* 하단 버튼 밀림 방지를 위한 flex-shrink 설정 */
         header { flex-shrink: 0; padding: 20px; border-bottom: 1px solid var(--border); text-align: center; position: relative; }
         footer { flex-shrink: 0; padding: 15px 20px; border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 16px; background: #f8fafc; }
 
@@ -137,13 +139,11 @@
         h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main); }
         .subtitle { font-size: 0.9rem; color: var(--text-light); margin-bottom: 12px; }
 
-        /* 진행률 바 */
         .progress-wrapper { width: 100%; max-width: 450px; margin: 0 auto 10px auto; text-align: center; }
         .progress-text { font-weight: 700; color: #4b5563; font-size: 0.95rem; margin-bottom: 6px; }
         .progress-container { width: 100%; background: #e5e7eb; height: 10px; border-radius: 10px; overflow: hidden; border: 1px solid #d1d5db; }
         .progress-bar { width: 0%; height: 100%; background: var(--success); transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
 
-        /* 텍스트가 길어져도 영역 제한 (내부 스크롤) */
         .message-box {
             padding: 12px 20px; border-radius: 8px; font-weight: 600; font-size: 1.05rem;
             transition: all 0.3s ease; background-color: #eff6ff; color: var(--info);
@@ -153,7 +153,6 @@
         .message-box.error { background-color: #fef2f2; color: var(--error); border-color: #fecaca; }
         .message-box.success { background-color: #ecfdf5; color: var(--success); border-color: #a7f3d0; }
 
-        /* --- Main Layout (유동적 높이 조절) --- */
         main { display: flex; flex: 1 1 0; min-height: 0; }
 
         .inventory {
@@ -172,7 +171,6 @@
         .part-btn:active { transform: translateY(0); }
         .part-btn.installed { background-color: #e5e7eb; color: #9ca3af; border-color: #e5e7eb; cursor: not-allowed; transform: none; box-shadow: none; }
 
-        /* 펄스 애니메이션 */
         @keyframes pulse-hint {
             0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); border-color: var(--primary); background-color: #eff6ff; }
             70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); border-color: var(--primary); background-color: #eff6ff; }
@@ -180,7 +178,6 @@
         }
         .part-btn.next-hint { animation: pulse-hint 1.6s infinite ease-in-out; color: var(--primary); font-weight: 700; }
 
-        /* 3D 화면 공간 유동적 확보 */
         .workspace-wrapper { flex: 1 1 0; position: relative; background-color: #f8fbff; cursor: grab; min-height: 0; }
         .workspace-wrapper:active { cursor: grabbing; }
 
@@ -198,7 +195,7 @@
         .btn-hint { background-color: var(--primary); color: white; flex: 1; max-width: 300px; }
         .btn-hint:hover { background-color: var(--primary-hover); }
 
-        /* --- Modal CSS 공통 --- */
+        /* --- Modal CSS --- */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;
@@ -236,51 +233,30 @@
            반응형 (Mobile) - 1화면 꽉 참 및 여백 완벽 제거
            ========================================= */
         @media (max-width: 768px) {
-            /* 홈 화면을 모바일 폰 1화면에 완벽하게 꽉 채우기 */
             .home-box {
-                width: 100%;
-                max-width: 100%;
-                height: 100%;
-                max-height: 100%;
-                border-radius: 0;
-                box-shadow: none;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                padding: 20px 15px;
+                width: 100%; max-width: 100%; height: 100%; max-height: 100%;
+                border-radius: 0; box-shadow: none; display: flex; flex-direction: column;
+                justify-content: center; align-items: center; padding: 20px 15px;
             }
             .btn-start, .btn-ghost { max-width: 100%; width: 100%; }
 
-            /* 실습 화면 꽉 차게 설정 (좌우 여백 제거) */
             .simulator-container { width: 100%; max-width: 100%; height: 100%; max-height: 100%; border-radius: 0; box-shadow: none; border: none; }
             
             header { padding: 10px 15px; }
             h1 { font-size: 1.1rem; margin-top: 30px; margin-bottom: 5px; } 
             .btn-go-home { top: 10px; left: 10px; padding: 6px 10px; font-size: 0.8rem; }
-            .subtitle { display: none; } /* 공간 확보를 위해 모바일에서 부제목 숨김 */
+            .subtitle { display: none; } 
             
             .progress-wrapper { margin-bottom: 6px; width: 100%; max-width: 100%; }
             .progress-text { font-size: 0.85rem; margin-bottom: 4px; }
-            
-            /* 긴 메시지가 버튼을 덮지 않도록 제한 */
             .message-box { font-size: 0.85rem; padding: 8px 12px; min-height: 44px; max-height: 75px; width: 100%; }
 
             main { flex-direction: column; flex: 1 1 0; min-height: 0; width: 100%; }
             
-            /* 가로 스와이프 형식 인벤토리 */
             .inventory { 
-                width: 100%; 
-                border-right: none; 
-                border-bottom: 1px solid var(--border); 
-                display: flex; 
-                flex-direction: row; 
-                flex-wrap: nowrap;
-                overflow-x: auto; 
-                padding: 10px; 
-                gap: 8px; 
-                -webkit-overflow-scrolling: touch; 
-                scrollbar-width: none; 
+                width: 100%; border-right: none; border-bottom: 1px solid var(--border); 
+                display: flex; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; 
+                padding: 10px; gap: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; 
             }
             .inventory::-webkit-scrollbar { display: none; }
             .inventory h2 { display: none; } 
