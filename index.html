@@ -201,7 +201,7 @@
             width: 280px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.15);
             z-index: 10;
-            pointer-events: none; 
+            pointer-events: none; /* 캔버스 회전 드래그 방해 안 함 */
             opacity: 0;
             transition: opacity 0.3s ease, transform 0.3s ease;
             transform: translateY(-10px);
@@ -215,6 +215,7 @@
             color: var(--primary);
             margin-bottom: 10px;
             font-weight: 700;
+            padding-right: 24px; /* 닫기 버튼과 겹침 방지 */
         }
         .spec-overlay ul {
             list-style: none;
@@ -238,6 +239,52 @@
             left: 0;
             color: var(--info);
             font-weight: bold;
+        }
+
+        /* --- [추가] 오버레이 ON/OFF 버튼 CSS --- */
+        .spec-close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 32px;
+            height: 32px;
+            background: transparent;
+            border: none;
+            font-size: 1.2rem;
+            color: #9ca3af;
+            cursor: pointer;
+            pointer-events: auto; /* 부모가 none이어도 클릭 가능하게 설정 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+        .spec-close-btn:hover {
+            color: #4b5563;
+            background-color: #f3f4f6;
+        }
+
+        .spec-restore-btn {
+            display: none; /* 기본은 숨김 */
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--primary);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            z-index: 10;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.2s;
+        }
+        .spec-restore-btn:hover {
+            background: var(--primary);
+            color: white;
         }
 
         .control-btn { padding: 12px 24px; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; touch-action: manipulation; }
@@ -327,6 +374,8 @@
             .spec-overlay { width: auto; left: 15px; right: 15px; top: 10px; padding: 12px; }
             .spec-overlay h3 { font-size: 0.95rem; margin-bottom: 8px; }
             .spec-overlay li { font-size: 0.85rem; }
+
+            .spec-restore-btn { top: 10px; right: 15px; padding: 6px 12px; font-size: 0.85rem; }
 
             footer { padding: 10px 15px; flex-direction: row; gap: 10px; width: 100%; }
             .control-btn { padding: 10px 15px; font-size: 0.9rem; flex: 1; }
@@ -582,11 +631,16 @@
 
             <div class="workspace-wrapper">
                 <div id="canvas-container"></div>
-                <!-- 힌트 안내 문구 수정 -->
+                <!-- 안내 문구 -->
                 <div class="control-hint">👆 부품에 마우스를 올리거나 터치하면 규격이 보입니다!</div>
                 
+                <!-- [추가됨] 오버레이 복구(켜기) 버튼 -->
+                <button id="spec-restore-btn" class="spec-restore-btn" onclick="toggleSpecOverlay()">💡 기준 켜기</button>
+
                 <!-- 부품 호버/클릭 시 나타나는 주요 기준 오버레이 패널 -->
                 <div id="spec-overlay" class="spec-overlay">
+                    <!-- [추가됨] 오버레이 끄기 버튼 -->
+                    <button class="spec-close-btn" onclick="toggleSpecOverlay()">&#10006;</button>
                     <h3>💡 주요 설치 기준</h3>
                     <ul id="spec-list"></ul>
                 </div>
@@ -605,13 +659,16 @@
     // 앱 핵심 로직 및 전역 상태 관리
     // ==========================================
     
-    // 치수선 그룹 관리 및 레이캐스팅 변수 (복구됨!)
+    // 치수선 그룹 관리 및 레이캐스팅 변수
     let dimensionGroups = {};
     let currentRenderPartId = null;
     let lastInstalledPartId = null;
     let currentHoveredPartId = null;
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
+
+    // [추가됨] 오버레이 패널 ON/OFF 유저 설정 상태 
+    let isSpecVisibleUserPref = true; 
 
     // 부품별 오버레이 패널 데이터
     const partSpecs = {
@@ -714,19 +771,42 @@
         }
     }
 
+    // [추가됨] 오버레이 ON/OFF 토글 로직
+    function toggleSpecOverlay() {
+        isSpecVisibleUserPref = !isSpecVisibleUserPref; // 설정 반전
+        const targetPartId = currentHoveredPartId || lastInstalledPartId;
+        updateSpecOverlay(targetPartId); // 설정에 맞게 UI 갱신
+    }
+
+    // 오버레이 패널 상태 업데이트 함수 (수정됨)
     function updateSpecOverlay(partId) {
         const overlay = document.getElementById('spec-overlay');
         const list = document.getElementById('spec-list');
+        const restoreBtn = document.getElementById('spec-restore-btn');
         
         if(!partId) {
             overlay.classList.remove('show');
+            restoreBtn.style.display = 'none';
             return;
         }
 
         const specs = partSpecs[partId];
         if(specs) {
             list.innerHTML = specs.map(spec => `<li>${spec}</li>`).join('');
-            overlay.classList.add('show');
+            
+            // 유저가 켜둔 상태면 오버레이 표시, 복구 버튼 숨김
+            if (isSpecVisibleUserPref) {
+                overlay.classList.add('show');
+                restoreBtn.style.display = 'none';
+            } 
+            // 유저가 꺼둔 상태면 오버레이 숨김, 복구 버튼 표시
+            else {
+                overlay.classList.remove('show');
+                restoreBtn.style.display = 'block';
+            }
+        } else {
+            overlay.classList.remove('show');
+            restoreBtn.style.display = 'none';
         }
     }
 
@@ -900,7 +980,7 @@
         animate();
     }
 
-    // 마우스 호버(Hover) 시 레이캐스트로 부품 찾기 (기능 복구)
+    // 마우스 호버(Hover) 시 레이캐스트로 부품 찾기
     function onPointerMove(event) {
         if(!renderer) return;
         const rect = renderer.domElement.getBoundingClientRect();
@@ -941,7 +1021,7 @@
         }
     }
 
-    // 화면 터치(Click) 시 해당 부품에 정보창 고정하기 (기능 복구)
+    // 화면 터치(Click) 시 해당 부품에 정보창 고정하기
     function onCanvasClick(event) {
         if (currentHoveredPartId) {
             lastInstalledPartId = currentHoveredPartId;
@@ -1005,7 +1085,7 @@
         mesh.rotation.set(rotX, rotY, rotZ);
         mesh.scale.set(0.01, 0.01, 0.01); 
 
-        // 마우스 호버 인식을 위해 메쉬에 파트 ID 태깅 (복구됨!)
+        // 마우스 호버 인식을 위해 메쉬에 파트 ID 태깅
         if (currentRenderPartId) {
             mesh.userData.partId = currentRenderPartId;
         }
@@ -1021,10 +1101,10 @@
     }
 
     // --- 치수선(Dimension Line) 생성 모듈 ---
-    // [수정됨] 얇은 선 대신 눈에 띄게 굵은 '원기둥(Cylinder)'을 이용해 3D 선형 구현
+    // 얇은 선 대신 눈에 띄게 굵은 '원기둥(Cylinder)'을 이용해 3D 선형 구현
     function createThickLine(pStart, pEnd, colorHex) {
         const distance = pStart.distanceTo(pEnd);
-        // 선의 두께(반경)를 기존 0.007에서 0.015로 2배 이상 두껍게 확대하여 시인성을 높였습니다.
+        // 선의 두께(반경) 0.015
         const geo = new THREE.CylinderGeometry(0.015, 0.015, distance, 8);
         const mat = new THREE.MeshBasicMaterial({ color: colorHex, depthTest: false }); // 무조건 앞에 보이게
         const mesh = new THREE.Mesh(geo, mat);
